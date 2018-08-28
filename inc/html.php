@@ -307,16 +307,17 @@ function html_draft(){
     global $INFO;
     global $ID;
     global $lang;
-    $draft = unserialize(io_readFile($INFO['draft'],false));
-    $text  = cleanText(con($draft['prefix'],$draft['text'],$draft['suffix'],true));
+    $draft = new \dokuwiki\Draft($ID, $INFO['client']);
+    $text  = $draft->getDraftText();
 
     print p_locale_xhtml('draft');
     html_diff($text, false);
     $form = new Doku_Form(array('id' => 'dw__editform'));
     $form->addHidden('id', $ID);
-    $form->addHidden('date', $draft['date']);
+    $form->addHidden('date', $draft->getDraftDate());
+    $form->addHidden('wikitext', $text);
     $form->addElement(form_makeOpenTag('div', array('id'=>'draft__status')));
-    $form->addElement($lang['draftdate'].' '. dformat(filemtime($INFO['draft'])));
+    $form->addElement($draft->getDraftMessage());
     $form->addElement(form_makeCloseTag('div'));
     $form->addElement(form_makeButton('submit', 'recover', $lang['btn_recover'], array('tabindex'=>'1')));
     $form->addElement(form_makeButton('submit', 'draftdel', $lang['btn_draftdel'], array('tabindex'=>'2')));
@@ -1804,7 +1805,7 @@ function html_edit(){
         $form->addElement(form_makeOpenTag('div', array('class'=>'editButtons')));
         $form->addElement(form_makeButton('submit', 'save', $lang['btn_save'], array('id'=>'edbtn__save', 'accesskey'=>'s', 'tabindex'=>'4')));
         $form->addElement(form_makeButton('submit', 'preview', $lang['btn_preview'], array('id'=>'edbtn__preview', 'accesskey'=>'p', 'tabindex'=>'5')));
-        $form->addElement(form_makeButton('submit', 'draftdel', $lang['btn_cancel'], array('tabindex'=>'6')));
+        $form->addElement(form_makeButton('submit', 'cancel', $lang['btn_cancel'], array('tabindex'=>'6')));
         $form->addElement(form_makeCloseTag('div'));
         $form->addElement(form_makeOpenTag('div', array('class'=>'summary')));
         $form->addElement(form_makeTextField('summary', $SUM, $lang['summary'], 'edit__summary', 'nowrap', array('size'=>'50', 'tabindex'=>'2')));
@@ -1832,9 +1833,16 @@ function html_edit(){
     <div class="editBox" role="application">
 
     <div class="toolbar group">
-        <div id="draft__status" class="draft__status"><?php if(!empty($INFO['draft'])) echo $lang['draftdate'].' '.dformat();?></div>
         <div id="tool__bar" class="tool__bar"><?php if ($wr && $data['media_manager']){?><a href="<?php echo DOKU_BASE?>lib/exe/mediamanager.php?ns=<?php echo $INFO['namespace']?>"
             target="_blank"><?php echo $lang['mediaselect'] ?></a><?php }?></div>
+    </div>
+    <div id="draft__status" class="draft__status">
+        <?php
+        $draft = new \dokuwiki\Draft($ID, $INFO['client']);
+        if ($draft->isDraftAvailable()) {
+            echo $draft->getDraftMessage();
+        }
+        ?>
     </div>
     <?php
 
